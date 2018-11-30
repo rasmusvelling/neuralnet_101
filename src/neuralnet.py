@@ -103,11 +103,11 @@ class NN_model(object):
         return x
 
     def loss_fn(self, a_L, y):
-        loss = - y * np.log(a_L) - (1 - y) * np.log(a_L)
+        loss = np.multiply(np.log(a_L), y) + np.multiply(np.log(1 - a_L), (1 - y))
         return loss
 
     def cost_fn(self, loss):
-        cost = np.sum(loss)
+        cost = - np.sum(loss) / loss.shape[1]
         return cost
 
     def d_loss_fn(self, a_L, y):

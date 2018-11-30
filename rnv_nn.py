@@ -19,9 +19,9 @@ Xt_test = X_test.T
 yt_test = y_test.reshape((1, len(y_test)))
 
 # settings
-layers = [5, 5, 5, 1]
-learning_rate=.01
-iterations = 2000
+layers = [4, 3, 1]
+learning_rate = .05
+iterations = 20000
 
 layers_sk = tuple(layers[0:(len(layers)-1)])
 
