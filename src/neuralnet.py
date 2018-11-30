@@ -9,6 +9,7 @@ class NN_model(object):
         # initialize parameters at random
         parameters = self.initialize_parameters(layer_dimensions, X)
         costs = []
+        estimates = []
 
         for iteration in range(iterations):
             # calculate forward propagation // ie. prediction
@@ -19,14 +20,17 @@ class NN_model(object):
             d_a_L = self.d_loss_fn(a_L, y)
             losses = self.loss_fn(a_L=a_L, y=y)
             cost = self.cost_fn(losses)
+
             costs.append(cost)
+            estimates.append(a_L)
+
 
             # calculate backwards propagation
 
-            gradients = self.backwards_propagation(layer_dimensions, parameters, d_a_L, cache)
+            gradients = self.backwards_propagation(layer_dimensions, parameters, cache, y)
             parameters = self.update_parameters(gradients, parameters, learning_rate)
 
-        return costs
+        return {'costs': costs, 'estimates': estimates}
 
     def initialize_parameters(self, layer_dimensions, X):
         # X is an (n_x, m) matrix representing n_x features and m samples
@@ -68,8 +72,6 @@ class NN_model(object):
             else:
                 a_l = self.ReLU(z_l)
 
-            a_l = z_l * (z_l > 0)
-
             cache['A' + str(l + 1)] = a_l
             cache['Z' + str(l + 1)] = z_l
 
@@ -101,29 +103,26 @@ class NN_model(object):
         d_a_L = -(y/a_L - (1-y)/(1-a_L))
         return d_a_L
 
-    def backwards_propagation(self, layer_dimensions, parameters, d_a_L, cache):
+    def backwards_propagation(self, layer_dimensions, parameters, cache, y):
 
         L = len(layer_dimensions)
         gradients = {}
-        d_a_l = d_a_L
+        m = y.shape[1]
 
         for l in reversed(range(L)):
 
+            a_l = cache['A' + str(l + 1)]
             z_l = cache['Z' + str(l + 1)]
             w_l = parameters['W' + str(l + 1)]
-
             a_lm1 = cache['A' + str(l)]
-            m = a_lm1.shape[1]
 
             if l == L-1:
-                d_z_l = np.multiply(d_a_l, self.d_sigmoid(z_l))
+                d_z_l = a_l - y
             else:
-                d_z_l = np.multiply(d_a_L, z_l)
+                d_z_l = np.multiply(d_a_l, 1 * (z_l>0))
 
             d_w_l = (1/m)*(np.dot(d_z_l, a_lm1.T))
-            print(d_w_l.shape)
-
-            d_b_l = np.sum(d_z_l, axis=1, keepdims=True)
+            d_b_l = (1/m)*np.sum(d_z_l, axis=1, keepdims=True)
             d_a_lm1 = np.dot(w_l.T, d_z_l)
 
             gradients['dZ' + str(l + 1)] = d_z_l
@@ -138,9 +137,7 @@ class NN_model(object):
     def update_parameters(self, gradients, parameters, learning_rate):
 
         for key, value in parameters.items():
-            print(key)
-            print(parameters[key].shape)
-            print(gradients["d" + key].shape)
+            #print(key + " : " + str(parameters[key].shape) + " | " + "d" + key + " : " + str(gradients["d" + key].shape))
             parameters[key] = value - learning_rate * gradients["d" + key]
 
         return parameters
