@@ -8,22 +8,25 @@ class NN_model(object):
     def fit(self, X, y, layer_dimensions, iterations, learning_rate):
         # initialize parameters at random
         parameters = self.initialize_parameters(layer_dimensions, X)
+        costs = []
 
-        # calculate forward propagation // ie. prediction
-        cache = self.forward_propagation(X, parameters, layer_dimensions)
+        for iteration in range(iterations):
+            # calculate forward propagation // ie. prediction
+            cache = self.forward_propagation(X, parameters, layer_dimensions)
 
-        # calculate loss & cost
-        a_L = cache['A' + str(len(layer_dimensions))]
-        losses = self.loss_fn(a_L=a_L, y=y)
-        cost = self.cost_fn(losses)
+            # calculate loss & cost
+            a_L = cache['A' + str(len(layer_dimensions))]
+            d_a_L = self.d_loss_fn(a_L, y)
+            losses = self.loss_fn(a_L=a_L, y=y)
+            cost = self.cost_fn(losses)
+            costs.append(cost)
 
-        # calculate backwards propagation
-        d_a_L = self.d_loss_fn(a_L, y)
-        #gradients = self.backwards_propagation()
+            # calculate backwards propagation
 
-        
+            gradients = self.backwards_propagation(layer_dimensions, parameters, d_a_L, cache)
+            parameters = self.update_parameters(gradients, parameters, learning_rate)
 
-        return d_a_L
+        return costs
 
     def initialize_parameters(self, layer_dimensions, X):
         # X is an (n_x, m) matrix representing n_x features and m samples
@@ -50,6 +53,7 @@ class NN_model(object):
     def forward_propagation(self, X, parameters, layer_dimensions):
 
         cache = {}
+        cache['A0'] = X
 
         a_lm1 = X
 
@@ -81,6 +85,10 @@ class NN_model(object):
         A = 1/(1+ np.exp(-Z))
         return A
 
+    def d_sigmoid(self, x):
+        ds = self.sigmoid(x) * (1 - self.sigmoid(x))
+        return ds
+
     def loss_fn(self, a_L, y):
         loss = - y * np.log(a_L) - (1 - y) * np.log(a_L)
         return loss
@@ -93,5 +101,46 @@ class NN_model(object):
         d_a_L = -(y/a_L - (1-y)/(1-a_L))
         return d_a_L
 
-    def backwards_propagation(self, layer_dimensions, d_a_L):
-        return 0
+    def backwards_propagation(self, layer_dimensions, parameters, d_a_L, cache):
+
+        L = len(layer_dimensions)
+        gradients = {}
+        d_a_l = d_a_L
+
+        for l in reversed(range(L)):
+
+            z_l = cache['Z' + str(l + 1)]
+            w_l = parameters['W' + str(l + 1)]
+
+            a_lm1 = cache['A' + str(l)]
+            m = a_lm1.shape[1]
+
+            if l == L-1:
+                d_z_l = np.multiply(d_a_l, self.d_sigmoid(z_l))
+            else:
+                d_z_l = np.multiply(d_a_L, z_l)
+
+            d_w_l = (1/m)*(np.dot(d_z_l, a_lm1.T))
+            print(d_w_l.shape)
+
+            d_b_l = np.sum(d_z_l, axis=1, keepdims=True)
+            d_a_lm1 = np.dot(w_l.T, d_z_l)
+
+            gradients['dZ' + str(l + 1)] = d_z_l
+            gradients['dW' + str(l + 1)] = d_w_l
+            gradients['db' + str(l + 1)] = d_b_l
+            gradients['dA' + str(l)] = d_a_lm1
+
+            d_a_l = d_a_lm1
+
+        return gradients
+
+    def update_parameters(self, gradients, parameters, learning_rate):
+
+        for key, value in parameters.items():
+            print(key)
+            print(parameters[key].shape)
+            print(gradients["d" + key].shape)
+            parameters[key] = value - learning_rate * gradients["d" + key]
+
+        return parameters
