@@ -2,6 +2,7 @@ import unittest
 import numpy as np
 import src
 
+
 class Tests(unittest.TestCase):
 
     def test_initialize_parameters(self):
@@ -23,3 +24,17 @@ class Tests(unittest.TestCase):
 
             n_lm1 = n_l
 
+    def test_sigmoid(self):
+        nn = src.neuralnet.NN_model()
+        a = nn.sigmoid(z=np.zeros((4, 2)))
+
+        self.assertEqual(a.shape, (4, 2))
+        self.assertTrue((
+            np.array_equal(
+                a,
+                np.array([[0.5, 0.5], [0.5, 0.5], [0.5, 0.5], [0.5, 0.5]])
+            )
+        ))
+
+if __name__ == '__main__':
+    unittest.main()
