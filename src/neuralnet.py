@@ -22,9 +22,8 @@ class NN_model(object):
             gradients = self.backwards_propagation(layer_dimensions, parameters, cache, y)
             parameters = self.update_parameters(gradients, parameters, learning_rate)
 
-            if iteration % 100 == 0:
-                losses = self.loss_fn(a_L=a_L, y=y)
-                cost = self.cost_fn(losses)
+            if iteration % 500 == 0:
+                cost = self.cost_cross_entropy(y=y, yhat=a_L)
                 costs.append(cost)
                 estimates.append(a_L)
 
@@ -89,6 +88,11 @@ class NN_model(object):
         A = Z * (Z > 0)
         return (A)
 
+    def d_relu(self, x):
+        x[x <= 0] = 0
+        x[x > 0] = 1
+        return x
+
     def sigmoid(self, Z):
         A = 1/(1+ np.exp(-Z))
         return A
@@ -97,21 +101,14 @@ class NN_model(object):
         ds = self.sigmoid(x) * (1 - self.sigmoid(x))
         return ds
 
-    def d_relu(self, x):
-        x[x <= 0] = 0
-        x[x > 0] = 1
-        return x
-
-    def loss_fn(self, a_L, y):
-        loss = np.multiply(np.log(a_L), y) + np.multiply(np.log(1 - a_L), (1 - y))
-        return loss
-
-    def cost_fn(self, loss):
-        cost = - np.sum(loss) / loss.shape[1]
+    def cost_cross_entropy(self, y, yhat):
+        loss = y * np.log(yhat) + (1-y) * np.log(1-yhat)
+        cost = -np.sum(loss) / loss.shape[1]
         return cost
 
-    def d_loss_fn(self, a_L, y):
-        d_a_L = -(y/a_L - (1-y)/(1-a_L))
+
+    def d_loss_fn(self, yhat, y):
+        d_a_L = -(y / yhat - (1 - y) / (1 - yhat))
         return d_a_L
 
     def backwards_propagation(self, layer_dimensions, parameters, cache, y):
