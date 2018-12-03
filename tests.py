@@ -49,7 +49,7 @@ class Tests(unittest.TestCase):
         nn = src.neuralnet.NN_model()
         x = np.zeros((2, 3))
         y = np.array([[.25, .25, .25], [.25, .25, .25]])
-        d_sig = nn.d_sigmoid(x=x)
+        d_sig = nn.d_sigmoid(z=x)
 
         self.assertEqual(d_sig.shape, (2, 3))
         self.assertTrue(np.allclose(d_sig, y))

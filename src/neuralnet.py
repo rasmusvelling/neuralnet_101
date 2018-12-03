@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 
 class NN_model(object):
@@ -10,6 +11,10 @@ class NN_model(object):
 
     def fit(self, X, y, layer_dimensions, iterations, learning_rate):
         """Trains model and generates parameters (weights) based on input data X,y and hyper parameters."""
+
+        # prepare X and y
+        X = self._reshape_X(X)
+        y = self._reshape_y(y)
 
         # initialize parameters at random
         parameters = self.initialize_parameters(layer_dimensions, X)
@@ -113,8 +118,8 @@ class NN_model(object):
         A = 1/(1+ np.exp(-Z))
         return A
 
-    def d_sigmoid(self, x):
-        ds = self.sigmoid(x) * (1 - self.sigmoid(x))
+    def d_sigmoid(self, z):
+        ds = self.sigmoid(z) * (1 - self.sigmoid(z))
         return ds
 
     def cost_cross_entropy(self, y, yhat):
@@ -134,22 +139,29 @@ class NN_model(object):
         """ Backwards propagation calculates the derivative of the loss function with respect to all parameters
         (weights). These derivate are then used to update the parameters. """
 
+        # L is the number of layer, we need this for iteration backwards
         L = len(layer_dimensions)
+        # Object for storing gradients of the weights down the layers
         gradients = {}
+        # number of sampleas in data
         m = y.shape[1]
 
+        # iterate backwards over layers
         for l in reversed(range(L)):
 
+            # cached object to calculate gradients
             a_l = cache['A' + str(l + 1)]
             z_l = cache['Z' + str(l + 1)]
             w_l = parameters['W' + str(l + 1)]
             a_lm1 = cache['A' + str(l)]
 
+            #if on top layer // calculating dz
             if l == L-1:
-                d_z_l = a_l - y
+                d_z_l = self.d_cross_entropy(y=y, yhat=a_l) * self.d_sigmoid(z=z_l)
             else:
                 d_z_l = np.multiply(d_a_l, self.d_relu(z_l))
 
+            # other gradients
             d_w_l = (1/m)*(np.dot(d_z_l, a_lm1.T))
             d_b_l = (1/m)*np.sum(d_z_l, axis=1, keepdims=True)
             d_a_lm1 = np.dot(w_l.T, d_z_l)
@@ -159,6 +171,7 @@ class NN_model(object):
             gradients['db' + str(l + 1)] = d_b_l
             gradients['dA' + str(l)] = d_a_lm1
 
+            # pass gradient of a in the layer below to next iteration
             d_a_l = d_a_lm1
 
         return gradients
@@ -171,12 +184,46 @@ class NN_model(object):
         return parameters
 
     def predict(self, X):
+        """ Predicts yhat given a dataset X"""
+
+        # Reshape X (transpose)
+        X = self._reshape_X(X)
+
+        # Get parameters
         parameters = self.parameters
+        # Get number of layers
         layer_dimensions = self.layer_dimensions
 
+        # make forward prop using paramters estimated in fit
         cache = self.forward_propagation(X, parameters, layer_dimensions)
+        # get output of last layer
         a_L = cache['A' + str(len(layer_dimensions))]
 
+        # since we're doing classification, assign value based on probability
         yhat = 1 * (a_L > .5)
 
+        # transpose yhat before outputting
+        yhat = yhat.T
         return yhat
+
+
+    def _reshape_y(self, y):
+        # reshape y to row vector
+        y = deepcopy(y)
+        if type(y) == list:
+            m = len(y)
+            y = np.array(y)
+            y = y.reshape((1, m))
+        elif y.ndim == 1:
+            m = y.shape[0]
+            y = y.reshape((1, m))
+        elif y.ndim == 2:
+            m = y.shape[0] * y.shape[1]
+            y = y.reshape((1, m))
+        return y
+
+    def _reshape_X(self, X):
+        # Transpose X
+        X = deepcopy(X)
+        X = X.T
+        return X
