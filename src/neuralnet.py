@@ -13,11 +13,13 @@ class NN_model(object):
         """Trains model and generates parameters (weights) based on input data X,y and hyper parameters."""
 
         # prepare X and y
-        X = self._reshape_X(X)
-        y = self._reshape_y(y)
+        Xt = self._reshape_X(X)
+        print("Xt.shape : " + str(Xt.shape))
+        yt = self._reshape_y(y)
+        print("yt.shape : " + str(yt.shape))
 
         # initialize parameters at random
-        parameters = self.initialize_parameters(layer_dimensions, X)
+        parameters = self.initialize_parameters(layer_dimensions, Xt)
 
         # lists for storing output
         costs = []
@@ -28,19 +30,19 @@ class NN_model(object):
         for iteration in range(iterations):
 
             # calculate forward propagation // ie. prediction
-            cache = self.forward_propagation(X, parameters, layer_dimensions)
+            cache = self.forward_propagation(Xt, parameters, layer_dimensions)
 
             # get yhat - the latest activation layer
             a_L = cache['A' + str(len(layer_dimensions))]
 
             # calculate backwards propagation
-            gradients = self.backwards_propagation(layer_dimensions, parameters, cache, y)
+            gradients = self.backwards_propagation(layer_dimensions, parameters, cache, yt)
 
             # update parameters
             parameters = self.update_parameters(gradients, parameters, learning_rate)
 
             if iteration % 500 == 0:
-                cost = self.cost_cross_entropy(y=y, yhat=a_L)
+                cost = self.cost_cross_entropy(y=yt, yhat=a_L)
                 costs.append(cost)
                 estimates.append(a_L)
 
@@ -80,6 +82,10 @@ class NN_model(object):
         # So W1 has dimensions
         return parameters
 
+    ########################
+    # Forwards and backwards propagations
+    #
+
     def forward_propagation(self, X, parameters, layer_dimensions):
 
         cache = {}
@@ -105,35 +111,6 @@ class NN_model(object):
 
         return cache
 
-    def ReLU(self, Z):
-        A = Z * (Z > 0)
-        return (A)
-
-    def d_relu(self, x):
-        x[x <= 0] = 0
-        x[x > 0] = 1
-        return x
-
-    def sigmoid(self, Z):
-        A = 1/(1+ np.exp(-Z))
-        return A
-
-    def d_sigmoid(self, z):
-        ds = self.sigmoid(z) * (1 - self.sigmoid(z))
-        return ds
-
-    def cost_cross_entropy(self, y, yhat):
-        loss = y * np.log(yhat) + (1-y) * np.log(1-yhat)
-        cost = -np.sum(loss) / loss.shape[1]
-        return cost
-
-    def d_cross_entropy(self, y, yhat):
-        d_cc = - y / yhat + (1-y)/(1-yhat)
-        return d_cc
-
-    def d_loss_fn(self, yhat, y):
-        d_a_L = -(y / yhat - (1 - y) / (1 - yhat))
-        return d_a_L
 
     def backwards_propagation(self, layer_dimensions, parameters, cache, y):
         """ Backwards propagation calculates the derivative of the loss function with respect to all parameters
@@ -176,14 +153,55 @@ class NN_model(object):
 
         return gradients
 
-    def update_parameters(self, gradients, parameters, learning_rate):
 
+    ########################
+    # Activation functions
+    #
+
+    def ReLU(self, Z):
+        A = Z * (Z > 0)
+        return (A)
+
+    def d_relu(self, x):
+        x[x <= 0] = 0
+        x[x > 0] = 1
+        return x
+
+    def sigmoid(self, Z):
+        A = 1/(1+ np.exp(-Z))
+        return A
+
+    def d_sigmoid(self, z):
+        ds = self.sigmoid(z) * (1 - self.sigmoid(z))
+        return ds
+
+
+    ########################
+    # Loss functions
+    #
+
+    def cost_cross_entropy(self, y, yhat):
+        loss = y * np.log(yhat) + (1-y) * np.log(1-yhat)
+        cost = -np.sum(loss) / loss.shape[1]
+        return cost
+
+    def d_cross_entropy(self, y, yhat):
+        d_cc = - y / yhat + (1-y)/(1-yhat)
+        return d_cc
+
+
+
+    ########################
+    # Other functions
+    #
+
+    def update_parameters(self, gradients, parameters, learning_rate):
         for key, value in parameters.items():
             parameters[key] = value - learning_rate * gradients["d" + key]
-
         return parameters
 
-    def predict(self, X):
+
+    def predict(self, X, output_type="flatten"):
         """ Predicts yhat given a dataset X"""
 
         # Reshape X (transpose)
@@ -204,6 +222,12 @@ class NN_model(object):
 
         # transpose yhat before outputting
         yhat = yhat.T
+
+        if output_type == "flatten":
+            yhat = yhat.flatten()
+        elif output_type == "list":
+            yhat = yhat.flatten().tolist()
+
         return yhat
 
 

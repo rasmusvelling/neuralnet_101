@@ -14,15 +14,10 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y,
     test_size=0.2, random_state=2)
 
-Xt = X_train.T
-yt = y_train.reshape((1, len(y_train)))
-Xt_test = X_test.T
-yt_test = y_test.reshape((1, len(y_test)))
-
 # settings
 layers = [4, 3, 1]
 learning_rate = .05
-iterations = 20000
+iterations = 5000
 
 layers_sk = tuple(layers[0:(len(layers)-1)])
 
@@ -31,9 +26,9 @@ print(layers_sk)
 
 # My own NN
 nn = src.neuralnet.NN_model()
-nn_out = nn.fit(X=Xt, y=yt, layer_dimensions=layers, iterations=iterations, learning_rate=learning_rate)
-nn_pred = nn.predict(X=Xt_test)
-nn_acc = (np.sum(nn_pred == yt_test)/len(y_test))
+nn_out = nn.fit(X=X_train, y=y_train, layer_dimensions=layers, iterations=iterations, learning_rate=learning_rate)
+nn_pred = nn.predict(X=X_test)
+nn_acc = (np.sum(nn_pred == y_test)/len(y_test))
 print("nn_acc : " + str(nn_acc))
 
 
@@ -47,7 +42,6 @@ sk_clf.fit(X=X_train, y=y_train)
 sk_pred = sk_clf.predict(X_test)
 sk_acc = (np.sum(sk_pred == y_test)/len(y_test))
 print("sk_acc : " + str(sk_acc))
-
 
 
 plt.plot(nn_out['costs'])
