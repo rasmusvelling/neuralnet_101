@@ -2,24 +2,36 @@ import numpy as np
 
 class NN_model(object):
 
+
+    # We could pass model parameters at the init stage. Maybe I'll change that later.
     def __init__(self):
         pass
 
+
     def fit(self, X, y, layer_dimensions, iterations, learning_rate):
+        """Trains model and generates parameters (weights) based on input data X,y and hyper parameters."""
+
         # initialize parameters at random
         parameters = self.initialize_parameters(layer_dimensions, X)
+
+        # lists for storing output
         costs = []
         estimates = []
 
+        # update weights along iterations.
+        # TODO: add tolerance parameter to auto-stop iterations when tolerance level is met.
         for iteration in range(iterations):
+
             # calculate forward propagation // ie. prediction
             cache = self.forward_propagation(X, parameters, layer_dimensions)
 
-            # calculate loss & cost
+            # get yhat - the latest activation layer
             a_L = cache['A' + str(len(layer_dimensions))]
 
             # calculate backwards propagation
             gradients = self.backwards_propagation(layer_dimensions, parameters, cache, y)
+
+            # update parameters
             parameters = self.update_parameters(gradients, parameters, learning_rate)
 
             if iteration % 500 == 0:
@@ -29,22 +41,27 @@ class NN_model(object):
 
                 print("Cost after iteration %i: %f" % (iteration, cost))
 
-
-
+        # all-iterations have been completed, time to save some results and return something
         self.parameters = parameters
         self.layer_dimensions = layer_dimensions
 
         return {'costs': costs, 'estimates': estimates}
 
+
     def initialize_parameters(self, layer_dimensions, X):
-        # X is an (n_x, m) matrix representing n_x features and m samples
-        # W1 needs to convert X to a (n_1, m) matrix representing n_1 units in layer 1 and m samples in data
-        # Thus W1 needs to be a (n_1, n_x) matrix
-        #
-        # For W2 we need to convert from (n_1, m) to (n_2, m), thus W2 has dimensions (n_2, n_1).
-        # And so on up to L.
-        #
-        # The b parameters just need to be a vector of n_i
+        """
+        Initializes model parameters (weights) at random.
+
+        A note about dimensions
+        X is an (n_x, m) matrix representing n_x features and m samples
+        W1 needs to convert X to a (n_1, m) matrix representing n_1 units in layer 1 and m samples in data
+        Thus W1 needs to be a (n_1, n_x) matrix
+
+        For W2 we need to convert from (n_1, m) to (n_2, m), thus W2 has dimensions (n_2, n_1).
+        And so on up to L.
+
+        The b parameters just need to be a vector of n_i
+        """
 
         parameters = {}
 
@@ -52,7 +69,6 @@ class NN_model(object):
         for l in range(len(layer_dimensions)):
             n_l = layer_dimensions[l]
             parameters['W' + str(l+1)] = np.random.randn(n_l, n_m1) * .1
-            print(parameters['W' + str(l+1)])
             parameters['b' + str(l+1)] = np.zeros((n_l, 1))
             n_m1 = n_l
 
@@ -106,12 +122,17 @@ class NN_model(object):
         cost = -np.sum(loss) / loss.shape[1]
         return cost
 
+    def d_cross_entropy(self, y, yhat):
+        d_cc = - y / yhat + (1-y)/(1-yhat)
+        return d_cc
 
     def d_loss_fn(self, yhat, y):
         d_a_L = -(y / yhat - (1 - y) / (1 - yhat))
         return d_a_L
 
     def backwards_propagation(self, layer_dimensions, parameters, cache, y):
+        """ Backwards propagation calculates the derivative of the loss function with respect to all parameters
+        (weights). These derivate are then used to update the parameters. """
 
         L = len(layer_dimensions)
         gradients = {}
